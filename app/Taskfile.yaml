@@ -1,0 +1,46 @@
+version: "3"
+
+vars:
+  HOME_DIR:
+    sh: echo $HOME
+  GCC_BIN: 
+    sh: which gcc
+  CARGO_BIN: 
+    sh: which cargo
+  LIB_NAME: rust
+
+tasks:
+  install-requirements:
+    desc: "Install all tools needed to run Rust code"
+    cmds:
+      - curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
+      # below command is needed to avoid terminal restart required in cargo first installation
+      - source "{{.HOME_DIR}}/.profile"
+      - cargo install --force cbindgen
+      - rustup update
+      - rustup component add rustfmt
+      - rustup component add clippy
+
+  run:
+    env:
+      RUST_BACKTRACE: full
+    desc: "Run clean and build tasks"
+    cmds:
+      - ./target/release/app
+    deps:
+      - build
+
+  build:
+    desc: "Build all needed files"
+    cmds:
+      - "{{.CARGO_BIN}} build --release"
+
+  fmt:
+    desc: "Format source code"
+    cmds: 
+      - "{{.CARGO_BIN}} fmt"
+
+  lint:
+    desc: "Lint code"
+    cmds: 
+      - "{{.CARGO_BIN}} clippy"
