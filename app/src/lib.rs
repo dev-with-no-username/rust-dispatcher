@@ -6,7 +6,7 @@ use std::{
     thread, time,
 };
 
-use dispatcher::Dispatcher;
+use dispatcher::{Dispatcher, Job};
 use rand::distributions::{Alphanumeric, DistString};
 use worker::Worker;
 
@@ -134,7 +134,8 @@ pub fn run_round_robin() {
     }
 
     // dispatch some jobs to receivers (workers)
-    let dispatcher = Dispatcher::new(senders);
+    let jobs = create_jobs();
+    let dispatcher = Dispatcher::new(senders, jobs);
     dispatcher.dispatch();
 
     // wait for all jobs to finish
@@ -146,4 +147,20 @@ pub fn run_round_robin() {
         "\nDuration of run_round_robin: {}\n",
         now.elapsed().as_secs_f32()
     );
+}
+
+#[rustfmt::skip]
+fn create_jobs() -> Vec<Job> {
+    let mut jobs = vec![];
+    for n in 1..MAX_JOBS_ROUND_ROBIN {
+        jobs.push(
+            Job::new(
+                format!("job: {n}"), 
+                move || {
+                    Ok(format!("{n}"))
+                }
+            )
+        )
+    }
+    jobs
 }
