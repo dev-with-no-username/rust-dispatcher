@@ -3,10 +3,10 @@ use std::{
         mpsc::{self, Receiver, Sender},
         Arc,
     },
-    thread, time,
+    thread::{self, JoinHandle}, time,
 };
 
-use dispatcher::{Dispatcher, Job};
+use dispatcher::{Dispatcher, Job, JobType};
 use rand::distributions::{Alphanumeric, DistString};
 use worker::Worker;
 
@@ -107,11 +107,56 @@ fn create_thread_pool(max_workers: i8) -> Vec<(Sender<String>, Receiver<String>)
 // below is a way to see how fast is Rust to execute all jobs, due to the fact that senders will be
 // deallocated by it after dispatcher.dispatch(), eventually closing the receivers automatically.
 // It's a round-robin scenario
-pub fn run_round_robin() {
+pub fn run_round_robin(receiver: Receiver<JobType>) {
     let now = time::Instant::now();
 
     // create thread_pool for various threads and start receivers waiting for jobs
-    let thread_pool = create_thread_pool(MAX_WORKERS_ROUND_ROBIN);
+    let (worker_pool, senders) = prepare_pool();
+
+    // create dispatcher for dispatch jobs to workers in idle
+    let dispatcher = Dispatcher::new(senders);
+
+    // waiting for jobs to come
+    waiting_for_jobs(receiver, dispatcher);
+
+    // wait for all jobs to finish
+    for work in worker_pool {
+        work.join().unwrap()
+    }
+
+    println!(
+        "\nDuration of run_round_robin: {}\n",
+        now.elapsed().as_secs_f32()
+    );
+}
+
+#[rustfmt::skip]
+pub fn create_jobs() -> Vec<JobType> {
+    let mut jobs = vec![];
+    for n in 0..MAX_JOBS_ROUND_ROBIN {
+        jobs.push(
+            JobType::Data(Job::new(
+                format!("job: {n}"), 
+                move || {
+                    Ok(format!("{n}"))
+                }
+            ))
+        )
+    }
+    jobs
+}
+
+fn create_thread_pool_round_robin(max_workers: i8) -> Vec<(Sender<JobType>, Receiver<JobType>)> {
+    let mut thread_pool = vec![];
+    for _ in 1..max_workers {
+        let ch = mpsc::channel();
+        thread_pool.push(ch);
+    }
+    thread_pool
+}
+
+pub fn prepare_pool() -> (Vec<JoinHandle<()>>, Vec<Sender<JobType>>) {
+    let thread_pool = create_thread_pool_round_robin(MAX_WORKERS_ROUND_ROBIN);
     let mut num = 1;
     let mut worker_pool = vec![];
     let mut senders = vec![];
@@ -133,34 +178,24 @@ pub fn run_round_robin() {
         num += 1;
     }
 
-    // dispatch some jobs to receivers (workers)
-    let jobs = create_jobs();
-    let dispatcher = Dispatcher::new(senders, jobs);
-    dispatcher.dispatch();
-
-    // wait for all jobs to finish
-    for work in worker_pool {
-        work.join().unwrap()
-    }
-
-    println!(
-        "\nDuration of run_round_robin: {}\n",
-        now.elapsed().as_secs_f32()
-    );
+    (worker_pool, senders)
 }
 
-#[rustfmt::skip]
-fn create_jobs() -> Vec<Job> {
-    let mut jobs = vec![];
-    for n in 1..MAX_JOBS_ROUND_ROBIN {
-        jobs.push(
-            Job::new(
-                format!("job: {n}"), 
-                move || {
-                    Ok(format!("{n}"))
+pub fn waiting_for_jobs(receiver: Receiver<JobType>, dispatcher: Dispatcher) {
+    thread::spawn(move || {
+        loop {
+            match receiver.recv() {
+                Ok(JobType::Data(job)) => {
+                    // dispatch some jobs to receivers (workers)
+                    dispatcher.dispatch(job);
                 }
-            )
-        )
-    }
-    jobs
+                Ok(JobType::None) => {
+                    dispatcher.graceful_shutdown();
+                }
+                Err(err) => {
+                    println!("thread waiting_for_jobs has been stopped, due to error: {err}");
+                }
+            }
+        }
+    });
 }
