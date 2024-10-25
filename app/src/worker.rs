@@ -23,10 +23,10 @@ impl Worker {
                         Ok(_) => {
                             // println!("job {num} execution successfully completed");
                             num += 1;
-                        },
+                        }
                         Err(err) => {
                             println!("job execution went wrong, due to error: {err}");
-                        },
+                        }
                     };
                 }
                 Ok(JobType::None) => {

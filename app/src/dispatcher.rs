@@ -1,7 +1,7 @@
 use std::{error, sync::mpsc::Sender};
 
 pub struct Dispatcher {
-    senders: Vec<Sender<JobType>>
+    senders: Vec<Sender<JobType>>,
 }
 
 #[allow(warnings)]
@@ -16,7 +16,7 @@ impl Dispatcher {
             Ok(_) => {
                 // increment the index so that the subsequent job
                 // will go to another worker in idle state
-            },
+            }
             Err(err) => {
                 println!("dispatch error {err}")
             }
@@ -32,7 +32,7 @@ impl Dispatcher {
 
 pub enum JobType {
     Data(Job),
-    None
+    None,
 }
 
 pub struct Job {

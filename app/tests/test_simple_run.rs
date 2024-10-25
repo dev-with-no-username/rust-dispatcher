@@ -1,4 +1,10 @@
-use std::{sync::{mpsc::{self, Receiver, Sender}, Arc}, thread};
+use std::{
+    sync::{
+        mpsc::{self, Receiver, Sender},
+        Arc,
+    },
+    thread,
+};
 
 use rand::distributions::{Alphanumeric, DistString};
 
@@ -101,15 +107,13 @@ fn dispatcher(sender: Arc<Sender<Option<String>>>, job: Option<String>) {
                             println!("job sending error: {err}")
                         }
                     }
-                },
-                None => {
-                    match sender.send(None) {
-                        Ok(_) => {
-                            break;
-                        }
-                        Err(err) => {
-                            println!("job gracefully shutdown goes wrong, due to error: {err}")
-                        }
+                }
+                None => match sender.send(None) {
+                    Ok(_) => {
+                        break;
+                    }
+                    Err(err) => {
+                        println!("job gracefully shutdown goes wrong, due to error: {err}")
                     }
                 },
             }

@@ -35,7 +35,7 @@ tasks:
     cmds:
       - "{{.CARGO_BIN}} build --release"
 
-  fmt:
+  format:
     desc: "Format source code"
     cmds: 
       - "{{.CARGO_BIN}} fmt"

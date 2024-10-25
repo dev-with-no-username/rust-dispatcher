@@ -1,5 +1,8 @@
 use std::{
-    error, sync::mpsc::{self, Receiver, Sender}, thread::{self, JoinHandle}, time
+    error,
+    sync::mpsc::{self, Receiver, Sender},
+    thread::{self, JoinHandle},
+    time,
 };
 
 use dispatcher::{Dispatcher, Job, JobType};
@@ -26,22 +29,20 @@ pub fn execute(rx: Receiver<JobType>) -> JoinHandle<()> {
 }
 
 /// create a job to be sent to dispatcher channel
-pub fn create_job(name: String, function: impl Fn() -> Result<String, Box<dyn error::Error>> + Send + 'static) -> JobType {
-    JobType::Data(
-        Job::new(
-            name, 
-            function
-        )
-    )
+pub fn create_job(
+    name: String,
+    function: impl Fn() -> Result<String, Box<dyn error::Error>> + Send + 'static,
+) -> JobType {
+    JobType::Data(Job::new(name, function))
 }
 
 /// gracefully shutdown the dispatcher channel and the worker pool
 pub fn stop(tx: Sender<JobType>) {
     match tx.send(JobType::None) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(err) => {
             println!("stop execution goes wrong, due to error: {err}")
-        },
+        }
     }
 }
 
