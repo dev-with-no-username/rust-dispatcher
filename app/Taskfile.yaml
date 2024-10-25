@@ -44,3 +44,9 @@ tasks:
     desc: "Lint code"
     cmds: 
       - "{{.CARGO_BIN}} clippy"
+
+  test:
+    desc: "Run all tests"
+    cmds: 
+      # -- --nocapture is needed to see messages in terminal like those of println!() 
+      - "{{.CARGO_BIN}} test -- --nocapture"
