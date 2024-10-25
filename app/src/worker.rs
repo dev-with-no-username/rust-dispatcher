@@ -9,12 +9,12 @@ pub struct Worker {
 }
 
 impl Worker {
-    pub fn new(receiver: Receiver<JobType>, id: usize, name: String) -> Worker {
+    pub fn new(receiver: Receiver<JobType>, id: usize, name: String) -> Self {
         Worker { receiver, id, name }
     }
 
     pub fn run(&self) {
-        // let mut num = 0;
+        let mut num = 0;
         loop {
             match self.receiver.recv() {
                 Ok(JobType::Data(job)) => {
@@ -22,7 +22,7 @@ impl Worker {
                     match (job.function)() {
                         Ok(_) => {
                             // println!("job {num} execution successfully completed");
-                            // num += 1;
+                            num += 1;
                         },
                         Err(err) => {
                             println!("job execution went wrong, due to error: {err}");
@@ -30,7 +30,7 @@ impl Worker {
                     };
                 }
                 Ok(JobType::None) => {
-                    println!("received shutdown signal, exiting");
+                    println!("received shutdown signal, exiting from {num}");
                     break;
                 }
                 Err(err) => {

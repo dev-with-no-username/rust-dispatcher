@@ -6,27 +6,20 @@ pub struct Dispatcher {
 
 #[allow(warnings)]
 impl Dispatcher {
-    pub fn new(senders: Vec<Sender<JobType>>) -> Dispatcher {
+    pub fn new(senders: Vec<Sender<JobType>>) -> Self {
         Dispatcher { senders }
     }
 
-    pub fn dispatch(&self, job: Job) {
+    pub fn dispatch(&self, job: Job, index: usize) {
         // use index to distribute workload evenly
-        let mut index = 0;
         match self.senders[index].send(JobType::Data(job)) {
             Ok(_) => {
                 // increment the index so that the subsequent job
                 // will go to another worker in idle state
-                index += 1
             },
             Err(err) => {
                 println!("dispatch error {err}")
             }
-        }
-        if index == self.senders.len() - 1 {
-            index = 0
-        } else {
-            index += 1
         }
     }
 
