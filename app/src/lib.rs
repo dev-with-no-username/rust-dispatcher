@@ -41,7 +41,7 @@ pub fn stop(tx: Sender<JobType>) {
     match tx.send(JobType::None) {
         Ok(_) => {}
         Err(err) => {
-            println!("stop execution goes wrong, due to error: {err}")
+            println!("stop execution went wrong, due to error: {err}")
         }
     }
 }
@@ -115,6 +115,8 @@ fn waiting_for_jobs(receiver: Receiver<JobType>, dispatcher: Dispatcher) {
                 Ok(JobType::Data(job)) => {
                     // dispatch some jobs to receivers (workers)
                     dispatcher.dispatch(job, index);
+                    // increment the index so that the subsequent job
+                    // will go to another worker in idle state
                     if index == (MAX_WORKERS - 1).try_into().unwrap() {
                         index = 0
                     } else {
@@ -124,8 +126,12 @@ fn waiting_for_jobs(receiver: Receiver<JobType>, dispatcher: Dispatcher) {
                 Ok(JobType::None) => {
                     dispatcher.graceful_shutdown();
                 }
-                Err(_) => {
-                    // println!("thread waiting_for_jobs has been stopped, due to error: {err}");
+                Err(err) => {
+                    // execution comes here once the sender is deallocated after the stop(),
+                    // in fact the error "receiving on a closed channel" is returned from
+                    // the receiver automatically once the sender is deallocated
+                    println!("dispatcher thread stopped, due to error: {err}");
+                    break;
                 }
             }
         }
@@ -149,6 +155,8 @@ pub fn create_jobs_and_test(tx: Sender<JobType>) {
     let len = jobs.len();
     for job in jobs {
         if num == len - 1 {
+            // send a stop signal for testing purpose, using the exact "tx" sender and not a
+            // clone so that it will be deallocated, automatically stopping the receiver too
             stop(tx);
             break;
         } else {

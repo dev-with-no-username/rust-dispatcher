@@ -13,12 +13,9 @@ impl Dispatcher {
     pub fn dispatch(&self, job: Job, index: usize) {
         // use index to distribute workload evenly
         match self.senders[index].send(JobType::Data(job)) {
-            Ok(_) => {
-                // increment the index so that the subsequent job
-                // will go to another worker in idle state
-            }
+            Ok(_) => {}
             Err(err) => {
-                println!("dispatch error {err}")
+                println!("dispatch error: {err}")
             }
         }
     }

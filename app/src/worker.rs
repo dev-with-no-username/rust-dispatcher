@@ -14,6 +14,7 @@ impl Worker {
     }
 
     pub fn run(&self) {
+        // num is for log and debug purpose
         let mut num = 0;
         loop {
             match self.receiver.recv() {
@@ -21,21 +22,32 @@ impl Worker {
                     // Simulate some work
                     match (job.function)() {
                         Ok(_) => {
-                            // println!("job {num} execution successfully completed");
+                            // commented to not overload terminal in case of high number of jobs
+                            // println!(
+                            //     "job {num} in {}-{} worker, successfully completed",
+                            //     self.id, self.name
+                            // );
                             num += 1;
                         }
                         Err(err) => {
-                            println!("job execution went wrong, due to error: {err}");
+                            println!(
+                                "job execution went wrong in {}-{} worker, due to error: {err}",
+                                self.id, self.name
+                            );
+                            break;
                         }
                     };
                 }
                 Ok(JobType::None) => {
-                    println!("received shutdown signal, exiting from {num}");
+                    println!(
+                        "gracefully shutdown {}-{} worker, exiting from {num}",
+                        self.id, self.name
+                    );
                     break;
                 }
                 Err(err) => {
                     println!(
-                        "worker {}-{} has stopped, due to error: {err}",
+                        "worker {}-{} was stopped, due to error: {err}",
                         self.id, self.name
                     );
                     break;
